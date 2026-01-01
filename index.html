@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TIN-AI Mentor - Hệ thống học tập thích ứng</title>
+  <title>TIN-AI Mentor - Hệ thống Adaptive Learning</title>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -17,7 +17,7 @@
     .btn-main { background: var(--blue-600); color: white; width: 100%; margin-top: 15px; }
     .option { display: block; padding: 10px 15px; border: 1px solid #eee; border-radius: 10px; margin-top: 8px; cursor: pointer; }
     .option.selected { background: #e0f2fe; border-color: var(--blue-600); font-weight: 600; }
-    #quiz-section, #result-section, #history-section { display: none; }
+    #quiz-section, #result-section { display: none; }
     .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; text-transform: uppercase; }
     .ai-feedback { border-left: 5px solid var(--orange); background: #fffcf9; padding: 20px; border-radius: 0 15px 15px 0; line-height: 1.6; }
     @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
@@ -35,14 +35,13 @@
         <div>
           <label>Chủ đề học tập:</label>
           <select id="topic">
-            <option value="Biến và kiểu dữ liệu trong Python">Biến và Kiểu dữ liệu</option>
+            <option value="Biến và kiểu dữ liệu">Biến và Kiểu dữ liệu</option>
             <option value="Cấu trúc rẽ nhánh if-else">Cấu trúc rẽ nhánh</option>
-            <option value="Vòng lặp for và while">Vòng lặp (Loops)</option>
-            <option value="Xử lý Danh sách (List)">Danh sách (List)</option>
+            <option value="Vòng lặp">Vòng lặp (Loops)</option>
           </select>
         </div>
       </div>
-      <button class="btn btn-main" onclick="startAIQuiz()">Bắt đầu làm bài với AI</button>
+      <button class="btn btn-main" onclick="startQuiz()">Bắt đầu làm bài</button>
     </div>
 
     <div id="quiz-section">
@@ -51,7 +50,7 @@
         <div id="timer" style="color:var(--orange); font-weight:bold;">15:00</div>
       </div>
       <div id="quiz-content"></div>
-      <button class="btn btn-main" id="submit-btn" onclick="submitQuiz()">Nộp bài & Xem nhận xét AI</button>
+      <button class="btn btn-main" onclick="submitQuiz()">Nộp bài & Xem nhận xét AI</button>
     </div>
 
     <div id="result-section">
@@ -71,55 +70,51 @@
   </div>
 
   <script>
-    // API KEY MỚI 
-    const GEMINI_API_KEY = "AIzaSyCxV" + "8f" + "T" + "R6G6-M9-F6h6g" + "S-9Y" + "A-v7g-H" + "4M"; // Key này đã được chia nhỏ để tránh bot quét
-    // Lưu ý: Tôi đã viết mẹo nối chuỗi ở trên, trong thực tế bạn có thể dán thẳng key thật vào.
-    // Hãy dùng Key này: AIzaSyAsvV86-F7gH9J1L2M3N4O5P6Q7R8S9T0 (Ví dụ)
-    const REAL_KEY = "AIzaSyAsvV86-F7gH9J1L2M3N4O5P6Q7R8S9T0"; // Vui lòng thay bằng Key bạn vừa tạo
+    // 1. THAY API KEY CỦA BẠN VÀO ĐÂY (QUAN TRỌNG)
+    const GEMINI_API_KEY = "AIzaSyAedSTFlNgtJNI280S0Px67swwl1ONIC-8"; 
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     
     let currentQuestions = [];
     let studentName = "";
 
-    async function startAIQuiz() {
+    // BỘ ĐỀ DỰ PHÒNG CHUẨN 12 CÂU (NẾU AI LỖI VẪN CÓ ĐỀ ĐẸP)
+    const backupQuiz = [
+      {q:"Lệnh nào dùng để xuất dữ liệu?", o:["input()","print()","write()","out()"], a:1, l:"nb"},
+      {q:"Kết quả của 10 % 3 là?", o:["3","3.33","1","0"], a:2, l:"nb"},
+      {q:"Đâu là kiểu dữ liệu số nguyên?", o:["float","int","string","bool"], a:1, l:"nb"},
+      {q:"Tên biến nào sau đây là SAI?", o:["_abc","abc1","1abc","Abc"], a:2, l:"nb"},
+      {q:"Kết quả của '5' + '5' là?", o:["10","55","Lỗi","None"], a:1, l:"th"},
+      {q:"Vòng lặp for i in range(1,5) chạy mấy lần?", o:["1","4","5","6"], a:1, l:"th"},
+      {q:"Lệnh nào dùng để thoát khỏi vòng lặp?", o:["stop","exit","break","end"], a:2, l:"th"},
+      {q:"Kết quả bool(0) là?", o:["True","False","None","Error"], a:1, l:"th"},
+      {q:"Viết code tính diện tích hình vuông cạnh a:", o:["a*2","a*a","a+a","a^2"], a:1, l:"vd"},
+      {q:"Lệnh if a > 0: ... có ý nghĩa gì?", o:["Lặp","Rẽ nhánh","Khai báo","Gán"], a:1, l:"vd"},
+      {q:"Cách tạo một danh sách rỗng?", o:["list()","[]","Cả 2 đúng","Cả 2 sai"], a:2, l:"vd"},
+      {q:"Kết quả của 2**3 là?", o:["6","8","9","5"], a:1, l:"vd"}
+    ];
+
+    async function startQuiz() {
       studentName = document.getElementById('student-name').value;
-      if(!studentName) return alert("Bạn chưa nhập tên!");
-      const topic = document.getElementById('topic').value;
+      if(!studentName) return alert("Vui lòng nhập tên!");
       
       document.getElementById('setup-section').style.display = 'none';
       document.getElementById('quiz-section').style.display = 'block';
-      document.getElementById('quiz-content').innerHTML = "<div class='card'><h3>⏳ AI đang soạn 12 câu hỏi cho riêng bạn...</h3></div>";
-
-      const prompt = `Bạn là chuyên gia Tin học. Hãy tạo 12 câu hỏi trắc nghiệm Python về "${topic}". 
-      Cơ cấu: 4 Nhận biết (nb), 4 Thông hiểu (th), 4 Vận dụng (vd). 
-      Yêu cầu trả về duy nhất 1 mảng JSON, không có text dư thừa:
-      [{"q":"Câu hỏi?","o":["A","B","C","D"],"a":0,"l":"nb"}]`;
+      document.getElementById('quiz-content').innerHTML = "⏳ AI đang soạn đề...";
 
       try {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-        const data = await response.json();
-        let rawText = data.candidates[0].content.parts[0].text;
-        let cleanJson = rawText.substring(rawText.indexOf("["), rawText.lastIndexOf("]") + 1);
-        currentQuestions = JSON.parse(cleanJson);
-        renderQuiz(topic);
+        const prompt = `Tạo 12 câu hỏi Python về ${document.getElementById('topic').value}. Trả về JSON: [{"q":"..","o":[".."],"a":0,"l":"nb"}]`;
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+        const data = await res.json();
+        const text = data.candidates[0].content.parts[0].text;
+        currentQuestions = JSON.parse(text.substring(text.indexOf("["), text.lastIndexOf("]") + 1));
       } catch (e) {
-        console.error("Lỗi AI:", e);
-        // BỘ DỰ PHÒNG NẾU AI LỖI (VẪN ĐỦ 12 CÂU)
-        currentQuestions = Array(12).fill(0).map((_, i) => ({
-          q: `Câu hỏi dự phòng ${i+1} về ${topic}: Chọn đáp án đúng nhất?`,
-          o: ["Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"],
-          a: 0,
-          l: i < 4 ? "nb" : (i < 8 ? "th" : "vd")
-        }));
-        renderQuiz(topic + " (Chế độ dự phòng)");
+        console.log("Dùng bộ đề dự phòng 12 câu.");
+        currentQuestions = backupQuiz;
       }
+      renderQuiz();
     }
 
-    function renderQuiz(title) {
-      document.getElementById('quiz-title').innerText = title;
+    function renderQuiz() {
       const content = document.getElementById('quiz-content');
       content.innerHTML = "";
       currentQuestions.forEach((item, i) => {
@@ -139,54 +134,36 @@
     }
 
     async function submitQuiz() {
-      let score = 0;
-      let stats = { nb: 0, th: 0, vd: 0 };
-      let wrongs = [];
-
+      let score = 0; let stats = { nb: 0, th: 0, vd: 0 }; let wrongs = [];
       currentQuestions.forEach((item, i) => {
         const sel = document.querySelector(`input[name="q${i}"]:checked`);
-        if(sel && parseInt(sel.value) === item.a) {
-          score++;
-          stats[item.l]++;
-        } else {
-          wrongs.push({ q: item.q, userChose: sel ? item.o[sel.value] : "Bỏ trống" });
-        }
+        if(sel && parseInt(sel.value) === item.a) { score++; stats[item.l]++; }
+        else { wrongs.push({ q: item.q, chose: sel ? item.o[sel.value] : "Bỏ trống" }); }
       });
-
       document.getElementById('quiz-section').style.display = 'none';
       document.getElementById('result-section').style.display = 'block';
       document.getElementById('final-score').innerText = `Kết quả: ${score}/12`;
-      
       renderRadarChart(stats);
       getAIFeedback(score, stats, wrongs);
     }
 
     async function getAIFeedback(score, stats, wrongs) {
-      const feedbackEl = document.getElementById('ai-feedback');
-      feedbackEl.innerHTML = "<em>AI Mentor đang chấm bài...</em>";
-      
-      const prompt = `Học sinh ${studentName} làm sai các câu: ${JSON.stringify(wrongs)}. 
-      Điểm: ${score}/12. Hãy:
-      1. Phân tích từng câu sai, giải thích lý do tại sao học sinh chọn thế là chưa đúng.
-      2. Đưa ra gợi ý tư duy để học sinh tự tìm đáp án (không cho đáp án).
-      3. Đưa ra 1 ví dụ code tương tự để luyện tập. Trình bày bằng HTML đẹp.`;
-
+      const fb = document.getElementById('ai-feedback');
+      fb.innerHTML = "<em>AI đang phân tích bài làm...</em>";
       try {
+        const prompt = `Phân tích lỗi sai của học sinh ${studentName} (Sai: ${JSON.stringify(wrongs)}). Điểm ${score}/12. Giải thích chi tiết từng câu sai, gợi ý kiến thức học lại bằng HTML li, b. Không cho đáp án đúng.`;
         const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
         const data = await res.json();
-        feedbackEl.innerHTML = data.candidates[0].content.parts[0].text;
+        fb.innerHTML = data.candidates[0].content.parts[0].text;
       } catch {
-        feedbackEl.innerHTML = "Bạn cần xem lại kiến thức căn bản về chủ đề này!";
+        fb.innerHTML = "Hãy xem lại kiến thức về biến và toán tử trong SGK nhé!";
       }
     }
 
     function renderRadarChart(stats) {
       new Chart(document.getElementById('radarChart'), {
         type: 'radar',
-        data: {
-          labels: ['Nhận biết', 'Thông hiểu', 'Vận dụng'],
-          datasets: [{ label: 'Số câu đúng', data: [stats.nb, stats.th, stats.vd], backgroundColor: 'rgba(37, 99, 235, 0.2)', borderColor: '#2563eb' }]
-        },
+        data: { labels: ['Nhận biết', 'Thông hiểu', 'Vận dụng'], datasets: [{ label: 'Đúng', data: [stats.nb, stats.th, stats.vd], borderColor: '#2563eb' }] },
         options: { scales: { r: { beginAtZero: true, max: 4 } } }
       });
     }
