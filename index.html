@@ -148,17 +148,35 @@
     }
 
     async function getAIFeedback(score, stats, wrongs) {
-      const fb = document.getElementById('ai-feedback');
-      fb.innerHTML = "<em>AI đang phân tích bài làm...</em>";
-      try {
-        const prompt = `Phân tích lỗi sai của học sinh ${studentName} (Sai: ${JSON.stringify(wrongs)}). Điểm ${score}/12. Giải thích chi tiết từng câu sai, gợi ý kiến thức học lại bằng HTML li, b. Không cho đáp án đúng.`;
-        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-        const data = await res.json();
-        fb.innerHTML = data.candidates[0].content.parts[0].text;
-      } catch {
-        fb.innerHTML = "Hãy xem lại kiến thức về biến và toán tử trong SGK nhé!";
-      }
-    }
+  const feedbackEl = document.getElementById('ai-feedback');
+  feedbackEl.innerHTML = "<em>🤖 AI Mentor đang phân tích chi tiết từng lỗi sai của bạn...</em>";
+  
+  // Câu lệnh yêu cầu AI phân tích sâu
+  const prompt = `Bạn là một chuyên gia dạy lập trình Python. 
+  Học sinh ${studentName} vừa hoàn thành bài thi với số điểm ${score}/12.
+  Danh sách các câu làm sai và đáp án học sinh đã chọn: ${JSON.stringify(wrongs)}.
+  
+  YÊU CẦU NHẬN XÉT (Sử dụng tiếng Việt, trình bày bằng HTML):
+  1. Phân tích cụ thể từng câu sai: Giải thích tại sao lựa chọn của học sinh là chưa đúng (về mặt logic hoặc cú pháp).
+  2. Không cho đáp án đúng ngay, hãy đưa ra gợi ý hoặc câu hỏi dẫn dắt để học sinh tự tư duy lại.
+  3. Cung cấp một đoạn mã mẫu (code snippet) liên quan đến kiến thức của câu sai đó để học sinh tham khảo.
+  4. Đưa ra lời khuyên lộ trình: Dựa trên các câu sai, học sinh cần đọc lại chương nào trong SGK Tin học.
+  
+  Hãy trình bày chuyên nghiệp, thân thiện, sử dụng các thẻ <b>, <li>, <pre> để dễ đọc.`;
+
+  try {
+    const res = await fetch(API_URL, { 
+      method: 'POST', 
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) 
+    });
+    const data = await res.json();
+    // Hiển thị nội dung nhận xét từ AI
+    feedbackEl.innerHTML = data.candidates[0].content.parts[0].text;
+  } catch (error) {
+    feedbackEl.innerHTML = "<b>Lưu ý:</b> AI đang bận xử lý. Gợi ý nhanh: Bạn nên xem lại kỹ phần cấu trúc vòng lặp và cách đặt tên biến trong Python.";
+    console.error("Lỗi AI Feedback:", error);
+  }
+}
 
     function renderRadarChart(stats) {
       new Chart(document.getElementById('radarChart'), {
@@ -170,4 +188,5 @@
   </script>
 </body>
 </html>
+
 
