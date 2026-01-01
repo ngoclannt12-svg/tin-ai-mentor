@@ -180,7 +180,15 @@
     async function getAIFeedback(score, stats, wrongs) {
       const feedbackEl = document.getElementById('ai-feedback');
       feedbackEl.innerHTML = "<em>AI đang phân tích...</em>";
-      const prompt = `Gia sư AI hãy nhận xét bài làm của ${studentName}: Sai các câu ${JSON.stringify(wrongs)}. Điểm ${score}/12. Không cho đáp án, chỉ gợi ý tư duy bằng HTML.`;
+      // Tìm hàm getAIFeedback và thay nội dung prompt bên trong:
+const prompt = `Bạn là một chuyên gia dạy lập trình Python. 
+Học sinh ${studentName} đạt ${score}/12 điểm. 
+Các câu làm sai: ${JSON.stringify(wrongs)}.
+Yêu cầu:
+1. Phân tích lỗi sai cụ thể dựa trên kiến thức (ví dụ: nhầm lẫn giữa % và //).
+2. Không cho đáp án đúng, hãy đặt câu hỏi gợi ý để học sinh tự tìm ra.
+3. Đưa ra một ví dụ mã nguồn Python tương tự câu đã sai để học sinh luyện tập.
+Dùng định dạng HTML để trình bày đẹp mắt.`;
       try {
         const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
         const data = await res.json();
@@ -232,4 +240,5 @@
   </script>
 </body>
 </html>
+
 
