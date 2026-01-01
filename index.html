@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hệ thống TIN-AI Mentor - Adaptive Learning</title>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root { --blue-600:#2563eb; --blue-700:#1d4ed8; --slate-100:#f1f5f9; --white:#ffffff; --orange: #ff6b3d; --green:#10b981;}
+    body { margin: 0; font-family: "Be Vietnam Pro", sans-serif; background: var(--slate-100); color: #333; }
+    .container { width: min(1100px, calc(100% - 40px)); margin: 0 auto; padding: 20px 0; }
+    .card { background: var(--white); padding: 25px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    select, input { width: 100%; padding: 12px; margin-top: 10px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; box-sizing: border-box; }
+    .btn { padding: 12px 25px; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; transition: 0.3s; }
+    .btn-main { background: var(--blue-600); color: white; width: 100%; margin-top: 15px; }
+    .option { display: block; padding: 10px 15px; border: 1px solid #eee; border-radius: 10px; margin-top: 8px; cursor: pointer; }
+    .option.selected { background: #e0f2fe; border-color: var(--blue-600); font-weight: 600; }
+    #quiz-section, #result-section, #history-section { display: none; }
+    .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; text-transform: uppercase; }
+    .ai-feedback { border-left: 5px solid var(--orange); background: #fffcf9; padding: 20px; border-radius: 0 15px 15px 0; }
+    @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="setup-section" class="card">
+      <h2>🚀 Chào mừng đến với TIN-AI Mentor</h2>
+      <p>Hệ thống tự động sinh đề và phân tích năng lực theo từng cá nhân.</p>
+      <div class="grid">
+        <div>
+          <label>Tên học sinh:</label>
+          <input type="text" id="student-name" placeholder="Nhập tên của bạn...">
+        </div>
+        <div>
+          <label>Chọn chủ đề kiến thức:</label>
+          <select id="topic">
+            <option value="Biến, kiểu dữ liệu và toán tử trong Python">Biến và Kiểu dữ liệu</option>
+            <option value="Cấu trúc rẽ nhánh if-else và logic">Cấu trúc rẽ nhánh</option>
+            <option value="Vòng lặp for, while và lệnh range">Vòng lặp</option>
+            <option value="Hàm (Functions) và tham số">Hàm và Module</option>
+            <option value="Xử lý danh sách (List) và chuỗi">Chuỗi và Danh sách</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-main" onclick="generateQuizByAI()">AI khởi tạo đề thi 12 câu (4-4-4)</button>
+      <button onclick="showHistory()" style="margin-top:15px; background:none; border:none; color:var(--blue-600); cursor:pointer; text-decoration:underline; width:100%">Xem báo cáo tiến bộ & Lịch sử làm bài</button>
+    </div>
+
+    <div id="quiz-section">
+      <div class="card" style="display:flex; justify-content:space-between; align-items:center; position: sticky; top: 10px; z-index: 100;">
+        <h3 id="quiz-title" style="margin:0">Đang làm bài...</h3>
+        <div id="timer" style="color:var(--orange); font-weight:bold; font-size:1.2em;">15:00</div>
+      </div>
+      <div id="quiz-content"></div>
+      <button class="btn btn-main" id="submit-btn" onclick="submitQuiz()">Nộp bài & Phân tích năng lực</button>
+    </div>
+
+    <div id="result-section">
+      <div class="grid">
+        <div class="card">
+          <h3>Thống kê năng lực</h3>
+          <canvas id="radarChart"></canvas>
+          <h2 id="final-score" style="text-align:center; color:var(--blue-700); margin-top:20px;"></h2>
+        </div>
+        <div class="card">
+          <h3>🤖 Gia sư AI hướng dẫn tư duy</h3>
+          <div id="ai-feedback" class="ai-feedback"></div>
+          <button class="btn btn-main" onclick="location.reload()">Làm bài tập mới</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="history-section" class="card">
+      <h2>📈 Báo cáo tiến bộ học tập</h2>
+      <div style="height: 300px; margin-bottom: 30px;">
+        <canvas id="lineChart"></canvas>
+      </div>
+      <h3>Lịch sử chi tiết</h3>
+      <div id="history-list"></div>
+      <button class="btn btn-main" onclick="location.reload()">Quay lại trang chủ</button>
+    </div>
+  </div>
+
+  <script>
+    const GEMINI_API_KEY = "AIzaSyAedSTFlNgtJNI280S0Px67swwl1ONIC-8"; //
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    
+    let currentQuestions = [];
+    let studentName = "";
+
+    // AI TỰ ĐỘNG SINH 12 CÂU HỎI (4-4-4)
+    async function generateQuizByAI() {
+      studentName = document.getElementById('student-name').value;
+      if(!studentName) return alert("Vui lòng nhập tên!");
+      const topic = document.getElementById('topic').value;
+      
+      document.getElementById('setup-section').style.display = 'none';
+      document.getElementById('quiz-section').style.display = 'block';
+      document.getElementById('quiz-content').innerHTML = "<div class='card'><h3>⏳ AI đang thiết kế đề thi riêng cho bạn...</h3><p>Vui lòng đợi trong giây lát.</p></div>";
+
+      const prompt = `Bạn là chuyên gia soạn đề thi Tin học. Hãy tạo 12 câu hỏi trắc nghiệm về chủ đề "${topic}". 
+      Yêu cầu nghiêm ngặt:
+      - 4 câu mức Nhận biết (nb), 4 câu mức Thông hiểu (th), 4 câu mức Vận dụng (vd).
+      - Định dạng trả về duy nhất mã JSON (không có text khác): [{"q": "câu hỏi", "o": ["A","B","C","D"], "a": index_đúng, "l": "nb/th/vd"}].`;
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const data = await response.json();
+        const jsonText = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '');
+        currentQuestions = JSON.parse(jsonText);
+        renderQuiz(topic);
+        startTimer();
+      } catch (e) {
+        alert("Lỗi kết nối AI khi tạo đề. Vui lòng thử lại!");
+        location.reload();
+      }
+    }
+
+    function renderQuiz(topic) {
+      document.getElementById('quiz-title').innerText = topic;
+      const content = document.getElementById('quiz-content');
+      content.innerHTML = "";
+      currentQuestions.forEach((item, i) => {
+        const color = item.l == 'nb' ? '#0369a1' : (item.l == 'th' ? '#92400e' : '#166534');
+        const levelTxt = item.l == 'nb' ? 'Nhận biết' : (item.l == 'th' ? 'Thông hiểu' : 'Vận dụng');
+        content.innerHTML += `<div class="card">
+          <span class="badge" style="background:${color}">${levelTxt}</span>
+          <p style="font-size:1.1em; margin-top:10px;"><b>Câu ${i+1}:</b> ${item.q}</p>
+          <div class="options">
+            ${item.o.map((opt, oi) => `<label class="option" id="q${i}o${oi}"><input type="radio" name="q${i}" value="${oi}" style="display:none" onclick="selectOpt(${i},${oi})"> ${opt}</label>`).join('')}
+          </div>
+        </div>`;
+      });
+    }
+
+    function selectOpt(qI, oI) {
+      document.querySelectorAll(`[id^="q${qI}o"]`).forEach(el => el.classList.remove('selected'));
+      document.getElementById(`q${qI}o${oI}`).classList.add('selected');
+    }
+
+    async function submitQuiz() {
+      let score = 0;
+      let stats = { nb: 0, th: 0, vd: 0 };
+      let wrongs = [];
+
+      currentQuestions.forEach((item, i) => {
+        const sel = document.querySelector(`input[name="q${i}"]:checked`);
+        if(sel && parseInt(sel.value) === item.a) {
+          score++;
+          stats[item.l]++;
+        } else {
+          wrongs.push({ q: item.q, user: sel ? item.o[sel.value] : "Chưa trả lời" });
+        }
+      });
+
+      // LƯU VÀO CƠ SỞ DỮ LIỆU (localStorage)
+      saveToDB(score, stats);
+
+      document.getElementById('quiz-section').style.display = 'none';
+      document.getElementById('result-section').style.display = 'block';
+      document.getElementById('final-score').innerText = `Kết quả: ${score}/12 điểm`;
+
+      renderRadarChart(stats);
+      getAIFeedback(score, stats, wrongs);
+    }
+
+    function saveToDB(score, stats) {
+      let db = JSON.parse(localStorage.getItem('tin_ai_db') || "[]");
+      db.push({ 
+        name: studentName, 
+        topic: document.getElementById('topic').value, 
+        score: score, 
+        stats: stats,
+        date: new Date().toLocaleString('vi-VN') 
+      });
+      localStorage.setItem('tin_ai_db', JSON.stringify(db));
+    }
+
+    // AI HƯỚNG DẪN TƯ DUY - KHÔNG CHO ĐÁP ÁN
+    async function getAIFeedback(score, stats, wrongs) {
+      const feedbackEl = document.getElementById('ai-feedback');
+      feedbackEl.innerHTML = "<em>AI Mentor đang nghiên cứu lỗi sai của bạn...</em>";
+      
+      const prompt = `Bạn là gia sư AI. Học sinh ${studentName} làm sai các câu sau: ${JSON.stringify(wrongs)}. 
+      Điểm số: ${score}/12 (Nhận biết: ${stats.nb}/4, Thông hiểu: ${stats.th}/4, Vận dụng: ${stats.vd}/4).
+      YÊU CẦU:
+      1. KHÔNG TIẾT LỘ ĐÁP ÁN ĐÚNG.
+      2. Giải thích tại sao logic của học sinh chưa đúng.
+      3. Gợi ý kiến thức cần đọc lại và đưa ra 1 ví dụ tương tự để học sinh tự giải.
+      Dùng HTML (b, li) để trình bày.`;
+
+      try {
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+        const data = await res.json();
+        feedbackEl.innerHTML = data.candidates[0].content.parts[0].text;
+      } catch {
+        feedbackEl.innerHTML = "AI bận xử lý, hãy xem lại các ghi chú trong sách giáo khoa về phần này nhé!";
+      }
+    }
+
+    // BÁO CÁO TIẾN BỘ (DÀNH CHO GIÁO VIÊN & HỌC SINH)
+    function showHistory() {
+      document.getElementById('setup-section').style.display = 'none';
+      document.getElementById('history-section').style.display = 'block';
+      const db = JSON.parse(localStorage.getItem('tin_ai_db') || "[]");
+      
+      const myData = db.filter(i => i.name === document.getElementById('student-name').value || !document.getElementById('student-name').value);
+      
+      const scores = myData.map(i => i.score);
+      const labels = myData.map(i => i.date.split(',')[0]);
+
+      new Chart(document.getElementById('lineChart'), {
+        type: 'line',
+        data: { labels: labels, datasets: [{ label: 'Điểm số (thang 12)', data: scores, borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.1)', fill: true, tension: 0.3 }] },
+        options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 12 } } }
+      });
+
+      const list = document.getElementById('history-list');
+      list.innerHTML = myData.reverse().map(r => `
+        <div style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between;">
+          <span><b>${r.name}</b> - ${r.topic}</span>
+          <span>Điểm: <b style="color:var(--blue-600)">${r.score}/12</b> (${r.date})</span>
+        </div>
+      `).join('');
+    }
+
+    function renderRadarChart(stats) {
+      new Chart(document.getElementById('radarChart'), {
+        type: 'radar',
+        data: {
+          labels: ['Nhận biết', 'Thông hiểu', 'Vận dụng'],
+          datasets: [{ label: 'Số câu đúng', data: [stats.nb, stats.th, stats.vd], backgroundColor: 'rgba(37, 99, 235, 0.2)', borderColor: '#2563eb', pointBackgroundColor: '#ff6b3d' }]
+        },
+        options: { scales: { r: { beginAtZero: true, max: 4, ticks: { stepSize: 1 } } } }
+      });
+    }
+
+    function startTimer() {
+      let time = 900;
+      const timerEl = document.getElementById('timer');
+      const interval = setInterval(() => {
+        if(time <= 0 || document.getElementById('quiz-section').style.display === 'none') return clearInterval(interval);
+        time--;
+        timerEl.innerText = `${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}`;
+      }, 1000);
+    }
+  </script>
+</body>
+</html>
