@@ -70,7 +70,7 @@
   </div>
 
   <script>
-    // Dán API Key mới của bạn vào đây
+    // SỬ DỤNG KEY MỚI CỦA BẠN
     const GEMINI_API_KEY = "AIzaSyCop1XD_KaGBiBaG78bgHclmw5Np2x3-4o"; 
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     
@@ -86,9 +86,7 @@
       document.getElementById('quiz-section').style.display = 'block';
       document.getElementById('quiz-content').innerHTML = "<div class='card'>⏳ AI đang thiết kế 12 câu hỏi riêng cho bạn...</div>";
 
-      const prompt = `Bạn là chuyên gia soạn đề Tin học. Tạo 12 câu hỏi trắc nghiệm Python về ${topic}. 
-      Cơ cấu: 4 câu Nhận biết (nb), 4 Thông hiểu (th), 4 Vận dụng (vd). 
-      Trả về duy nhất mảng JSON: [{"q":"..","o":["A","B","C","D"],"a":0,"l":"nb"}]`;
+      const prompt = `Tạo 12 câu hỏi trắc nghiệm Python về ${topic}. 4 câu nb, 4 th, 4 vd. Trả về duy nhất mảng JSON: [{"q":"..","o":["A","B","C","D"],"a":0,"l":"nb"}]`;
 
       try {
         const res = await fetch(API_URL, { 
@@ -98,17 +96,22 @@
         });
         const data = await res.json();
         let text = data.candidates[0].content.parts[0].text;
-        // Lọc sạch các ký tự Markdown dư thừa để tránh lỗi JSON.parse
+        
+        // Bẫy lỗi định dạng JSON: Cắt bỏ mọi thứ không phải là mảng
         const cleanJson = text.substring(text.indexOf("["), text.lastIndexOf("]") + 1);
         currentQuestions = JSON.parse(cleanJson);
+        
         renderQuiz(topic);
         startTimer();
       } catch (e) {
-        console.error(e);
-        alert("Lỗi kết nối AI. Đang dùng đề dự phòng.");
+        console.error("Lỗi:", e);
+        alert("Lỗi kết nối AI. Đang nạp đề dự phòng chất lượng cao...");
+        // Tự động nạp đề dự phòng nếu mạng lỗi để web không bị đơ
         currentQuestions = [
-          {q:"Lệnh print(10 // 3) cho kết quả?", o:["3.33","3","1","Lỗi"], a:1, l:"nb"},
-          {q:"Đâu là kiểu dữ liệu số nguyên?", o:["float","int","str","bool"], a:1, l:"nb"}
+          {q:"Kết quả của 10 % 3 là?", o:["1","3","0","3.33"], a:0, l:"nb"},
+          {q:"Lệnh print(type('10')) cho kết quả?", o:["int","float","str","list"], a:2, l:"nb"},
+          {q:"Đâu là cách đặt tên biến sai?", o:["_abc","abc_1","1_abc","abc"], a:2, l:"nb"},
+          {q:"Để dừng vòng lặp ngay lập tức ta dùng?", o:["stop","exit","break","continue"], a:2, l:"nb"}
         ];
         renderQuiz(topic);
       }
@@ -145,39 +148,16 @@
 
       document.getElementById('quiz-section').style.display = 'none';
       document.getElementById('result-section').style.display = 'block';
-      document.getElementById('final-score').innerText = `Kết quả: ${score}/12`;
+      document.getElementById('final-score').innerText = `Kết quả: ${score}/${currentQuestions.length}`;
       renderRadarChart(stats);
       
       const fb = document.getElementById('ai-feedback');
-      fb.innerHTML = "<em>🤖 AI Mentor đang phân tích chi tiết từng lỗi sai của bạn...</em>";
+      fb.innerHTML = "<em>🤖 AI Mentor đang phân tích lỗi sai...</em>";
       
-      const promptFB = `Học sinh ${studentName} sai các câu: ${JSON.stringify(wrongs)}. Điểm ${score}/12. 
-      Yêu cầu: Giải thích CỤ THỂ từng câu tại sao sai, gợi ý tư duy và đưa ra ví dụ code bằng thẻ <pre>. 
-      Không cho đáp án đúng. Trình bày bằng HTML (b, li, pre).`;
-
       try {
+        const promptFB = `Học sinh ${studentName} sai các câu: ${JSON.stringify(wrongs)}. Điểm ${score}/12. Giải thích tại sao sai và gợi ý kiến thức bằng HTML (b, li, pre). Không cho đáp án đúng.`;
         const resFB = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: promptFB }] }] }) });
         const dataFB = await resFB.json();
         fb.innerHTML = dataFB.candidates[0].content.parts[0].text.replace(/```html|```/g, "");
-      } catch { fb.innerHTML = "AI không thể nhận xét lúc này. Hãy xem lại bài tập nhé!"; }
+      } catch { fb.innerHTML = "AI không thể nhận xét lúc này."; }
     }
-
-    function renderRadarChart(stats) {
-      new Chart(document.getElementById('radarChart'), {
-        type: 'radar',
-        data: { labels: ['Nhận biết', 'Thông hiểu', 'Vận dụng'], datasets: [{ label: 'Số câu đúng', data: [stats.nb, stats.th, stats.vd], borderColor: '#2563eb', fill: true }] },
-        options: { scales: { r: { beginAtZero: true, max: 4 } } }
-      });
-    }
-
-    function startTimer() {
-      let time = 900;
-      const interval = setInterval(() => {
-        if(time <= 0 || document.getElementById('quiz-section').style.display === 'none') return clearInterval(interval);
-        time--;
-        document.getElementById('timer').innerText = `${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}`;
-      }, 1000);
-    }
-  </script>
-</body>
-</html>
