@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TIN-AI Mentor - Hệ thống Adaptive Learning</title>
+  <title>TIN-AI Mentor - Hệ thống Học tập Thích ứng</title>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    :root { --blue-600:#2563eb; --blue-700:#1d4ed8; --slate-100:#f1f5f9; --white:#ffffff; --orange: #ff6b3d; }
+    :root { --blue-600:#2563eb; --blue-700:#1d4ed8; --slate-100:#f1f5f9; --white:#ffffff; --orange: #ff6b3d; --green:#10b981;}
     body { margin: 0; font-family: "Be Vietnam Pro", sans-serif; background: var(--slate-100); color: #333; }
     .container { width: min(1100px, calc(100% - 40px)); margin: 0 auto; padding: 20px 0; }
     .card { background: var(--white); padding: 25px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
@@ -19,7 +19,7 @@
     #quiz-section, #result-section { display: none; }
     .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; text-transform: uppercase; }
     .ai-feedback { border-left: 5px solid var(--orange); background: #fffcf9; padding: 20px; border-radius: 0 15px 15px 0; line-height: 1.8; }
-    pre { background: #2d2d2d; color: #61dafb; padding: 15px; border-radius: 8px; overflow-x: auto; }
+    pre { background: #2d2d2d; color: #61dafb; padding: 15px; border-radius: 8px; overflow-x: auto; font-family: monospace; }
     @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -45,10 +45,11 @@
     </div>
 
     <div id="quiz-section">
-      <div class="card">
-        <h3 id="quiz-title">Đang soạn đề...</h3>
-        <div id="quiz-content"></div>
+      <div class="card" style="position: sticky; top: 10px; z-index: 100; display: flex; justify-content: space-between; align-items: center;">
+        <h3 id="quiz-title" style="margin:0">Đang soạn đề...</h3>
+        <div id="timer" style="color:var(--orange); font-weight:bold;">15:00</div>
       </div>
+      <div id="quiz-content"></div>
       <button class="btn" onclick="submitQuiz()">Nộp bài & Xem nhận xét chi tiết</button>
     </div>
 
@@ -69,25 +70,25 @@
   </div>
 
   <script>
-    // 1. DÙNG KEY MỚI (Key cũ của bạn có thể đã bị khóa)
+    // Dán API Key mới của bạn vào đây
     const GEMINI_API_KEY = "AIzaSyCop1XD_KaGBiBaG78bgHclmw5Np2x3-4o"; 
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     
     let currentQuestions = [];
     let studentName = "";
 
-    // 2. HÀM SINH ĐỀ AI (ĐÃ FIX LỖI KẾT NỐI)
     async function generateQuizByAI() {
       studentName = document.getElementById('student-name').value;
       if(!studentName) return alert("Vui lòng nhập tên!");
+      const topic = document.getElementById('topic').value;
       
       document.getElementById('setup-section').style.display = 'none';
       document.getElementById('quiz-section').style.display = 'block';
-      document.getElementById('quiz-content').innerHTML = "⏳ AI đang soạn 12 câu hỏi mới...";
+      document.getElementById('quiz-content').innerHTML = "<div class='card'>⏳ AI đang thiết kế 12 câu hỏi riêng cho bạn...</div>";
 
-      const prompt = `Tạo 12 câu hỏi trắc nghiệm Python về ${document.getElementById('topic').value}. 
-      Yêu cầu: 4 câu Nhận biết (nb), 4 Thông hiểu (th), 4 Vận dụng (vd). 
-      Trả về duy nhất JSON: [{"q":"..","o":["A","B","C","D"],"a":0,"l":"nb"}]`;
+      const prompt = `Bạn là chuyên gia soạn đề Tin học. Tạo 12 câu hỏi trắc nghiệm Python về ${topic}. 
+      Cơ cấu: 4 câu Nhận biết (nb), 4 Thông hiểu (th), 4 Vận dụng (vd). 
+      Trả về duy nhất mảng JSON: [{"q":"..","o":["A","B","C","D"],"a":0,"l":"nb"}]`;
 
       try {
         const res = await fetch(API_URL, { 
@@ -97,20 +98,27 @@
         });
         const data = await res.json();
         let text = data.candidates[0].content.parts[0].text;
+        // Lọc sạch các ký tự Markdown dư thừa để tránh lỗi JSON.parse
         const cleanJson = text.substring(text.indexOf("["), text.lastIndexOf("]") + 1);
         currentQuestions = JSON.parse(cleanJson);
-        renderQuiz();
+        renderQuiz(topic);
+        startTimer();
       } catch (e) {
         console.error(e);
-        alert("Lỗi kết nối AI. Vui lòng kiểm tra lại mạng hoặc API Key!");
-        location.reload();
+        alert("Lỗi kết nối AI. Đang dùng đề dự phòng.");
+        currentQuestions = [
+          {q:"Lệnh print(10 // 3) cho kết quả?", o:["3.33","3","1","Lỗi"], a:1, l:"nb"},
+          {q:"Đâu là kiểu dữ liệu số nguyên?", o:["float","int","str","bool"], a:1, l:"nb"}
+        ];
+        renderQuiz(topic);
       }
     }
 
-    function renderQuiz() {
+    function renderQuiz(topic) {
+      document.getElementById('quiz-title').innerText = topic;
       const content = document.getElementById('quiz-content');
       content.innerHTML = currentQuestions.map((item, i) => `
-        <div class="card" style="border:1px solid #eee">
+        <div class="card">
           <span class="badge" style="background:${item.l=='nb'?'#0369a1':(item.l=='th'?'#92400e':'#166534')}">${item.l}</span>
           <p><b>Câu ${i+1}:</b> ${item.q}</p>
           ${item.o.map((opt, oi) => `
@@ -132,7 +140,7 @@
       currentQuestions.forEach((item, i) => {
         const sel = document.querySelector(`input[name="q${i}"]:checked`);
         if(sel && parseInt(sel.value) === item.a) { score++; stats[item.l]++; }
-        else { wrongs.push({ q: item.q, user: sel ? item.o[sel.value] : "Bỏ trống" }); }
+        else { wrongs.push({ cau: item.q, ban_chon: sel ? item.o[sel.value] : "Bỏ trống" }); }
       });
 
       document.getElementById('quiz-section').style.display = 'none';
@@ -140,25 +148,36 @@
       document.getElementById('final-score').innerText = `Kết quả: ${score}/12`;
       renderRadarChart(stats);
       
-      // NHẬN XÉT AI CHI TIẾT
       const fb = document.getElementById('ai-feedback');
-      fb.innerHTML = "<em>🤖 AI đang phân tích lỗi sai của bạn...</em>";
+      fb.innerHTML = "<em>🤖 AI Mentor đang phân tích chi tiết từng lỗi sai của bạn...</em>";
+      
+      const promptFB = `Học sinh ${studentName} sai các câu: ${JSON.stringify(wrongs)}. Điểm ${score}/12. 
+      Yêu cầu: Giải thích CỤ THỂ từng câu tại sao sai, gợi ý tư duy và đưa ra ví dụ code bằng thẻ <pre>. 
+      Không cho đáp án đúng. Trình bày bằng HTML (b, li, pre).`;
+
       try {
-        const promptFB = `Học sinh ${studentName} sai: ${JSON.stringify(wrongs)}. Điểm ${score}/12. Giải thích lỗi sai và gợi ý kiến thức bằng HTML (b, li, pre).`;
         const resFB = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: promptFB }] }] }) });
         const dataFB = await resFB.json();
         fb.innerHTML = dataFB.candidates[0].content.parts[0].text.replace(/```html|```/g, "");
-      } catch { fb.innerHTML = "AI không thể nhận xét lúc này."; }
+      } catch { fb.innerHTML = "AI không thể nhận xét lúc này. Hãy xem lại bài tập nhé!"; }
     }
 
     function renderRadarChart(stats) {
       new Chart(document.getElementById('radarChart'), {
         type: 'radar',
-        data: { labels: ['Nhận biết', 'Thông hiểu', 'Vận dụng'], datasets: [{ label: 'Đúng', data: [stats.nb, stats.th, stats.vd], borderColor: '#2563eb', fill: true }] },
+        data: { labels: ['Nhận biết', 'Thông hiểu', 'Vận dụng'], datasets: [{ label: 'Số câu đúng', data: [stats.nb, stats.th, stats.vd], borderColor: '#2563eb', fill: true }] },
         options: { scales: { r: { beginAtZero: true, max: 4 } } }
       });
+    }
+
+    function startTimer() {
+      let time = 900;
+      const interval = setInterval(() => {
+        if(time <= 0 || document.getElementById('quiz-section').style.display === 'none') return clearInterval(interval);
+        time--;
+        document.getElementById('timer').innerText = `${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}`;
+      }, 1000);
     }
   </script>
 </body>
 </html>
-
