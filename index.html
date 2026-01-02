@@ -2,77 +2,51 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TIN-AI Mentor - Hệ thống học tập thích ứng</title>
+  <title>TIN-AI Mentor - Bản Sửa Lỗi Triệt Để</title>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    :root { --blue-600:#2563eb; --blue-700:#1d4ed8; --slate-100:#f1f5f9; --white:#ffffff; --orange: #ff6b3d; --green:#10b981;}
-    body { margin: 0; font-family: "Be Vietnam Pro", sans-serif; background: var(--slate-100); color: #333; }
+    :root { --blue-600:#2563eb; --blue-700:#1d4ed8; --slate-100:#f1f5f9; --white:#ffffff; --orange: #ff6b3d; }
+    body { margin: 0; font-family: "Be Vietnam Pro", sans-serif; background: var(--slate-100); }
     .container { width: min(1100px, calc(100% - 40px)); margin: 0 auto; padding: 20px 0; }
     .card { background: var(--white); padding: 25px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    select, input { width: 100%; padding: 12px; margin-top: 10px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; box-sizing: border-box; }
-    .btn { padding: 12px 25px; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; transition: 0.3s; }
-    .btn-main { background: var(--blue-600); color: white; width: 100%; margin-top: 15px; }
+    .btn { padding: 12px 25px; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; background: var(--blue-600); color: white; width: 100%; margin-top: 15px; }
     .option { display: block; padding: 10px 15px; border: 1px solid #eee; border-radius: 10px; margin-top: 8px; cursor: pointer; }
     .option.selected { background: #e0f2fe; border-color: var(--blue-600); font-weight: 600; }
     #quiz-section, #result-section { display: none; }
-    .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; text-transform: uppercase; }
-    .ai-feedback { border-left: 5px solid var(--orange); background: #fffcf9; padding: 20px; border-radius: 0 15px 15px 0; line-height: 1.8; }
-    pre { background: #f4f4f4; padding: 10px; border-radius: 8px; border: 1px solid #ddd; overflow-x: auto; }
-    @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    .ai-feedback { border-left: 5px solid var(--orange); background: #fffcf9; padding: 20px; border-radius: 0 15px 15px 0; line-height: 1.8; min-height: 100px; }
+    pre { background: #2d2d2d; color: #61dafb; padding: 15px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', monospace; }
   </style>
 </head>
 <body>
   <div class="container">
     <div id="setup-section" class="card">
-      <h2>🚀 TIN-AI Mentor: Khởi tạo đề thi thông minh</h2>
-      <div class="grid">
-        <div>
-          <label>Tên học sinh:</label>
-          <input type="text" id="student-name" placeholder="Nhập tên của bạn...">
-        </div>
-        <div>
-          <label>Chủ đề học tập:</label>
-          <select id="topic">
-            <option value="Biến và kiểu dữ liệu">Biến và Kiểu dữ liệu</option>
-            <option value="Cấu trúc rẽ nhánh if-else">Cấu trúc rẽ nhánh</option>
-            <option value="Vòng lặp for và while">Vòng lặp</option>
-          </select>
-        </div>
-      </div>
-      <button class="btn btn-main" onclick="startQuiz()">Tạo đề 12 câu ngẫu nhiên với AI</button>
+      <h2>🚀 TIN-AI Mentor: Hệ thống Adaptive Learning</h2>
+      <input type="text" id="student-name" placeholder="Nhập tên của bạn..." style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd;">
+      <select id="topic" style="width:100%; padding:12px; margin-top:10px; border-radius:10px;">
+        <option value="Biến và kiểu dữ liệu">Biến và Kiểu dữ liệu</option>
+        <option value="Cấu trúc rẽ nhánh if-else">Cấu trúc rẽ nhánh</option>
+        <option value="Vòng lặp for và while">Vòng lặp</option>
+      </select>
+      <button class="btn" onclick="startQuiz()">Bắt đầu làm bài (AI sinh đề mới)</button>
     </div>
 
     <div id="quiz-section">
-      <div class="card" style="display:flex; justify-content:space-between; align-items:center; position: sticky; top: 0; z-index: 100;">
-        <h3 id="quiz-title" style="margin:0">Đang soạn đề...</h3>
-        <div id="timer" style="color:var(--orange); font-weight:bold;">15:00</div>
-      </div>
-      <div id="quiz-content"></div>
-      <button class="btn btn-main" onclick="submitQuiz()">Nộp bài & Xem nhận xét chi tiết</button>
+      <div class="card"><h3>Câu hỏi từ AI:</h3><div id="quiz-content"></div></div>
+      <button class="btn" onclick="submitQuiz()">Nộp bài & Phân tích AI</button>
     </div>
 
     <div id="result-section">
       <div class="grid">
-        <div class="card">
-          <h3>Năng lực thực tế</h3>
-          <canvas id="radarChart"></canvas>
-          <h2 id="final-score" style="text-align:center; color:var(--blue-700); margin-top:20px;"></h2>
-        </div>
-        <div class="card">
-          <h3>🤖 Gia sư AI hướng dẫn chi tiết</h3>
-          <div id="ai-feedback" class="ai-feedback"></div>
-          <button class="btn btn-main" onclick="location.reload()">Làm đề khác</button>
-        </div>
+        <div class="card"><h3>Năng lực thực tế</h3><canvas id="radarChart"></canvas><h2 id="final-score" style="text-align:center;"></h2></div>
+        <div class="card"><h3>🤖 Nhận xét chi tiết từng câu</h3><div id="ai-feedback" class="ai-feedback"></div><button class="btn" onclick="location.reload()">Làm đề khác</button></div>
       </div>
     </div>
   </div>
 
   <script>
-    // CẬP NHẬT API KEY MỚI (Key này hoạt động ổn định hơn)
-    const GEMINI_API_KEY = "AIzaSyDNK-HQezg7B1GjYMDPfkHx7Ig2_lKaYEA"; 
+    const GEMINI_API_KEY = "AIzaSyDNK-HQezg7B1GjYMDPfkHx7Ig2_lKaYEA"; // Hãy thử đổi Key nếu vẫn lỗi
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     
     let currentQuestions = [];
@@ -81,45 +55,38 @@
     async function startQuiz() {
       studentName = document.getElementById('student-name').value;
       if(!studentName) return alert("Vui lòng nhập tên!");
-      
       document.getElementById('setup-section').style.display = 'none';
       document.getElementById('quiz-section').style.display = 'block';
-      document.getElementById('quiz-content').innerHTML = "⏳ AI đang soạn đề thi mới cho riêng bạn, vui lòng đợi...";
+      document.getElementById('quiz-content').innerHTML = "⏳ AI đang soạn đề thi mới (12 câu)...";
 
-      // Cải tiến Prompt để AI luôn sinh câu hỏi mới và đa dạng hơn
-      const prompt = `Bạn là chuyên gia Tin học. Hãy tạo 12 câu hỏi trắc nghiệm Python ngẫu nhiên về ${document.getElementById('topic').value}. 
-      Yêu cầu: 4 câu Nhận biết (nb), 4 Thông hiểu (th), 4 Vận dụng (vd). 
-      Định dạng trả về duy nhất 1 mảng JSON: [{"q":"..","o":["A","B","C","D"],"a":0,"l":"nb"}]`;
+      const prompt = `Tạo 12 câu hỏi trắc nghiệm Python khác nhau về ${document.getElementById('topic').value}. 
+      Cấu trúc JSON: [{"q":"câu hỏi","o":["A","B","C","D"],"a":0,"l":"nb"}] (a là index đúng, l là mức độ nb/th/vd).`;
 
       try {
         const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
         const data = await res.json();
-        let text = data.candidates[0].content.parts[0].text;
-        const cleanJson = text.substring(text.indexOf("["), text.lastIndexOf("]") + 1);
-        currentQuestions = JSON.parse(cleanJson);
+        const rawText = data.candidates[0].content.parts[0].text;
+        currentQuestions = JSON.parse(rawText.substring(rawText.indexOf("["), rawText.lastIndexOf("]") + 1));
+        renderQuiz();
       } catch (e) {
-        alert("AI gặp sự cố, hệ thống sẽ dùng đề dự phòng để đảm bảo bạn vẫn có thể học!");
+        alert("Lỗi kết nối AI. Đang dùng đề dự phòng.");
         currentQuestions = [
-          {q:"Lệnh print(10 // 3) cho kết quả là?", o:["3.33","3","1","Lỗi"], a:1, l:"nb"},
-          {q:"Đâu là cách đặt tên biến đúng?", o:["1_bien","bien_1","bien 1","bien-1"], a:1, l:"nb"},
-          // ... thêm các câu dự phòng khác tại đây nếu cần
+            {q:"Lệnh nào dùng để in?", o:["print","input","if","for"], a:0, l:"nb"},
+            {q:"10 % 3 bằng mấy?", o:["1","3","0","3.3"], a:0, l:"nb"}
+            // ... thêm câu khác
         ];
+        renderQuiz();
       }
-      renderQuiz();
     }
 
     function renderQuiz() {
       const content = document.getElementById('quiz-content');
-      content.innerHTML = "";
-      currentQuestions.forEach((item, i) => {
-        content.innerHTML += `<div class="card">
-          <span class="badge" style="background:${item.l=='nb'?'#0369a1':(item.l=='th'?'#92400e':'#166534')}">${item.l}</span>
+      content.innerHTML = currentQuestions.map((item, i) => `
+        <div style="margin-bottom:20px;">
           <p><b>Câu ${i+1}:</b> ${item.q}</p>
-          <div class="options">
-            ${item.o.map((opt, oi) => `<label class="option" id="q${i}o${oi}"><input type="radio" name="q${i}" value="${oi}" style="display:none" onclick="selectOpt(${i},${oi})"> ${opt}</label>`).join('')}
-          </div>
-        </div>`;
-      });
+          ${item.o.map((opt, oi) => `<label class="option" id="q${i}o${oi}"><input type="radio" name="q${i}" value="${oi}" style="display:none" onclick="selectOpt(${i},${oi})"> ${opt}</label>`).join('')}
+        </div>
+      `).join('');
     }
 
     function selectOpt(qI, oI) {
@@ -128,45 +95,35 @@
     }
 
     async function submitQuiz() {
-      let score = 0; let stats = { nb: 0, th: 0, vd: 0 }; let wrongs = [];
+      let score = 0; let wrongs = []; let stats = {nb:0, th:0, vd:0};
       currentQuestions.forEach((item, i) => {
         const sel = document.querySelector(`input[name="q${i}"]:checked`);
         if(sel && parseInt(sel.value) === item.a) { score++; stats[item.l]++; }
-        else { wrongs.push({ q: item.q, userChose: sel ? item.o[sel.value] : "Bỏ trống", level: item.l }); }
+        else { wrongs.push({ q: item.q, user: sel ? item.o[sel.value] : "Bỏ trống" }); }
       });
+
       document.getElementById('quiz-section').style.display = 'none';
       document.getElementById('result-section').style.display = 'block';
       document.getElementById('final-score').innerText = `Kết quả: ${score}/12`;
-      renderRadarChart(stats);
-      getAIFeedback(score, stats, wrongs);
-    }
-
-    async function getAIFeedback(score, stats, wrongs) {
-      const fb = document.getElementById('ai-feedback');
-      fb.innerHTML = "<em>AI Mentor đang phân tích chi tiết bài làm của bạn...</em>";
       
-      // Prompt được thiết kế để ép AI nhận xét chi tiết từng câu sai
-      const prompt = `Phân tích lỗi sai của học sinh ${studentName} (Sai: ${JSON.stringify(wrongs)}). Điểm ${score}/12. 
-      Yêu cầu: 
-      1. Phân tích từng câu sai, giải thích tại sao học sinh chọn thế là chưa đúng. 
-      2. Gợi ý tư duy kiến thức (Không cho đáp án). 
-      3. Đưa ra ví dụ minh họa bằng thẻ <pre> code. 
-      Trình bày bằng HTML đẹp (b, li, pre).`;
-
+      renderRadarChart(stats);
+      
+      // GỌI AI NHẬN XÉT CHI TIẾT
+      const fb = document.getElementById('ai-feedback');
+      fb.innerHTML = "<em>🤖 AI đang phân tích lỗi sai của bạn...</em>";
       try {
-        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-        const data = await res.json();
-        let aiText = data.candidates[0].content.parts[0].text;
-        fb.innerHTML = aiText.replace(/```html|```/g, ""); // Xóa ký tự thừa của AI
-      } catch {
-        fb.innerHTML = "Có lỗi khi kết nối AI. Vui lòng kiểm tra lại kết nối mạng!";
-      }
+        const promptFB = `Học sinh ${studentName} sai các câu: ${JSON.stringify(wrongs)}. Điểm ${score}/12. 
+        Hãy giải thích CỤ THỂ từng câu sai tại sao sai và gợi ý tư duy bằng HTML (b, li, pre). Không cho đáp án đúng.`;
+        const resFB = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: promptFB }] }] }) });
+        const dataFB = await resFB.json();
+        fb.innerHTML = dataFB.candidates[0].content.parts[0].text.replace(/```html|```/g, "");
+      } catch { fb.innerHTML = "AI không thể nhận xét lúc này. Hãy xem lại bài tập!"; }
     }
 
     function renderRadarChart(stats) {
       new Chart(document.getElementById('radarChart'), {
         type: 'radar',
-        data: { labels: ['Nhận biết', 'Thông hiểu', 'Vận dụng'], datasets: [{ label: 'Đúng', data: [stats.nb, stats.th, stats.vd], borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.2)' }] },
+        data: { labels: ['Nhận biết', 'Thông hiểu', 'Vận dụng'], datasets: [{ label: 'Đúng', data: [stats.nb||0, stats.th||0, stats.vd||0], borderColor: '#2563eb', fill: true }] },
         options: { scales: { r: { beginAtZero: true, max: 4 } } }
       });
     }
